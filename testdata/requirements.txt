@@ -1,0 +1,6 @@
+flask==2.0.1
+requests>=2.25.0
+django==4.2.0
+numpy==1.24.0
+# this is a comment
+pandas>=2.0.0
