@@ -1,0 +1,22 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - gofmt
+    - goimports
+    - revive
+  
+  disable:
+  - depguard
+
+issues:
+  exclude-dirs:
+    - testdata
+    - vendor
