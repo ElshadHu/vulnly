@@ -8,7 +8,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-func TableResult(w io.Writer, result *osv.ScanResult) {
+func TableResult(w io.Writer, result *osv.ScanResult) error {
 	total := result.Summary.Critical + result.Summary.High + result.Summary.Medium + result.Summary.Low + result.Summary.Unknown
 	fmt.Fprintf(w, "\nScan: %d deps, %d vulns\n", result.Summary.TotalDeps, total)
 	fmt.Fprintf(w, "Critical: %d | High: %d | Medium: %d | Low: %d | Unknown: %d\n\n",
@@ -16,7 +16,7 @@ func TableResult(w io.Writer, result *osv.ScanResult) {
 
 	if len(result.Packages) == 0 {
 		fmt.Fprintln(w, "No vulnerabilities found")
-		return
+		return nil
 	}
 
 	table := tablewriter.NewWriter(w)
@@ -27,7 +27,12 @@ func TableResult(w io.Writer, result *osv.ScanResult) {
 		if fix == "" {
 			fix = "-"
 		}
-		table.Append([]string{pv.Name, pv.Version, pv.Vuln.ID, string(pv.Severity), fix})
+		if err := table.Append([]string{pv.Name, pv.Version, pv.Vuln.ID, string(pv.Severity), fix}); err != nil {
+			return fmt.Errorf("failed to append table: %w", err)
+		}
 	}
-	table.Render()
+	if err := table.Render(); err != nil {
+		return fmt.Errorf("render table: %w", err)
+	}
+	return nil
 }
