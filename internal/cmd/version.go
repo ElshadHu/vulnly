@@ -15,8 +15,8 @@ func NewVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Print version information",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("vulnly %s (%s)\n", Version, Commit)
+		Run: func(cmd *cobra.Command, _ []string) {
+			fmt.Fprintf(cmd.OutOrStdout(), "vulnly %s (%s)\n", Version, Commit)
 		},
 	}
 }

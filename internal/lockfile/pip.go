@@ -22,7 +22,7 @@ func (e PipExtractor) ShouldExtract(path string) bool {
 // package==1.0.0, package>=1.0.0, package~=1.0.0
 var pipVersionRegex = regexp.MustCompile(`^([a-zA-Z0-9_-]+)\s*([=~<>!]+)\s*([0-9][a-zA-Z0-9._-]*)`)
 
-func (e PipExtractor) Extract(r io.Reader, path string) ([]PackageDetails, error) {
+func (e PipExtractor) Extract(r io.Reader, _ string) ([]PackageDetails, error) {
 	var packages []PackageDetails
 
 	scanner := bufio.NewScanner(r)

@@ -17,7 +17,7 @@ func (e GoModExtractor) ShouldExtract(path string) bool {
 	return filepath.Base(path) == "go.sum"
 }
 
-func (e GoModExtractor) Extract(r io.Reader, path string) ([]PackageDetails, error) {
+func (e GoModExtractor) Extract(r io.Reader, _ string) ([]PackageDetails, error) {
 	var packages []PackageDetails
 	seen := make(map[string]bool)
 

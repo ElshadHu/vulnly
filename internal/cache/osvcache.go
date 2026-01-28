@@ -33,7 +33,7 @@ func New(baseDir string, ttl time.Duration) *FileCache {
 	}
 }
 
-type CacheEntry struct {
+type Entry struct {
 	Data      json.RawMessage `json:"data"`
 	ExpiresAt time.Time       `json:"expires_at"`
 }
@@ -54,7 +54,7 @@ func (c *FileCache) Get(ecosystem, name, version string) ([]byte, error) {
 		return nil, fmt.Errorf("read cache: %w", err)
 	}
 
-	var entry CacheEntry
+	var entry Entry
 	if err := json.Unmarshal(data, &entry); err != nil {
 		os.Remove(path)
 		return nil, ErrCacheCorrupt
@@ -74,7 +74,7 @@ func (c *FileCache) Set(ecosystem, name, version string, data []byte) error {
 		return fmt.Errorf("create cache dir: %w", err)
 	}
 
-	entry := CacheEntry{
+	entry := Entry{
 		Data:      data,
 		ExpiresAt: time.Now().Add(c.ttl),
 	}
