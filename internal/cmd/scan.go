@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/ElshadHu/vulnly/internal/lockfile"
@@ -42,16 +41,18 @@ func NewScanCmd() *cobra.Command {
 			// Output results
 			switch formatFlag {
 			case "json":
-				if err := output.JSONResult(os.Stdout, result); err != nil {
-					return err
+				if err := output.JSONResult(cmd.OutOrStdout(), result); err != nil {
+					return fmt.Errorf("failed to output JSON: %w", err)
 				}
 			default:
-				output.TableResult(os.Stdout, result)
+				if err := output.TableResult(cmd.OutOrStdout(), result); err != nil {
+					return fmt.Errorf("failed to output table: %w", err)
+				}
 			}
 
 			// Check severity threshold after output
 			if checkSeverityThreshold(result, failOnSeverity) {
-				os.Exit(1)
+				return fmt.Errorf("vulnerabilities found at or above %s severity", failOnSeverity)
 			}
 
 			return nil
