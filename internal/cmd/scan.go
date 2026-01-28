@@ -34,20 +34,23 @@ func NewScanCmd() *cobra.Command {
 				return nil
 			}
 
-			var vulns []*osv.Vulnerability // placeholder for now
+			result, err := osv.Scan(packages)
+			if err != nil {
+				return fmt.Errorf("failed to query OSV: %w", err)
+			}
 
 			// Output results
 			switch formatFlag {
 			case "json":
-				if err := output.JSON(os.Stdout, packages); err != nil {
+				if err := output.JSONResult(os.Stdout, result); err != nil {
 					return err
 				}
 			default:
-				output.Table(os.Stdout, packages)
+				output.TableResult(os.Stdout, result)
 			}
 
 			// Check severity threshold after output
-			if checkSeverityThreshold(vulns, failOnSeverity) {
+			if checkSeverityThreshold(result, failOnSeverity) {
 				os.Exit(1)
 			}
 
@@ -61,14 +64,13 @@ func NewScanCmd() *cobra.Command {
 	return cmd
 }
 
-func checkSeverityThreshold(vulns []*osv.Vulnerability, threshold string) bool {
+func checkSeverityThreshold(result *osv.ScanResult, threshold string) bool {
 	if threshold == "" {
 		return false
 	}
 	thresholdSev := osv.Severity(strings.ToUpper(threshold))
-	for _, v := range vulns {
-		severity := osv.GetSeverity(v)
-		if severity.Priority() >= thresholdSev.Priority() {
+	for _, pv := range result.Packages {
+		if pv.Severity.Priority() >= thresholdSev.Priority() {
 			return true
 		}
 	}

@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/ElshadHu/vulnly/internal/lockfile"
+	"github.com/ElshadHu/vulnly/internal/osv"
 )
 
-func JSON(w io.Writer, packages []lockfile.PackageDetails) error {
+func JSONResult(w io.Writer, result *osv.ScanResult) error {
 	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", " ")
-	return encoder.Encode(packages)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(result)
 }
