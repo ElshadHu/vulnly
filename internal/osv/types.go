@@ -67,3 +67,34 @@ type Vulnerability struct {
 	Affected   []Affected      `json:"affected"`
 	References []Reference     `json:"references,omitempty"`
 }
+
+func (a *Affected) MatchesPackage(ecosystem, name string) bool {
+	return a.Package.Name == name && a.Package.Ecosystem == ecosystem
+}
+
+func (r *Range) FixedVersion() string {
+	for _, e := range r.Events {
+		if e.Fixed != "" {
+			return e.Fixed
+		}
+	}
+	return ""
+}
+
+func (a *Affected) FixedVersion() string {
+	for _, r := range a.Ranges {
+		if v := r.FixedVersion(); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func (v *Vulnerability) GetFixedVersion(ecosystem, name string) string {
+	for _, aff := range v.Affected {
+		if aff.MatchesPackage(ecosystem, name) {
+			return aff.FixedVersion()
+		}
+	}
+	return ""
+}
