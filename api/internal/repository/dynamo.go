@@ -1,0 +1,163 @@
+// Package repository provides data access layer for DynamoDB operations.
+
+package repository
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/google/uuid"
+)
+
+var (
+	ErrLoadConfig           = errors.New("failed to load AWS config")
+	ErrMarshalProject       = errors.New("failed to marshal project")
+	ErrMarshalScan          = errors.New("failed to marshal scan")
+	ErrMarshalVulnerability = errors.New("failed to marshal vulnerability")
+	ErrPutProject           = errors.New("failed to put project")
+	ErrQueryProjects        = errors.New("failed to query projects")
+	ErrBatchWrite           = errors.New("failed to batch write")
+)
+
+type DynamoDB struct {
+	client               *dynamodb.Client
+	usersTable           string
+	projectsTable        string
+	scansTable           string
+	vulnerabilitiesTable string
+}
+
+// NewDynamoDB creates a new DynamoDB  repository with connections to all required tables
+func NewDynamoDB(ctx context.Context) (*DynamoDB, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrLoadConfig, err)
+	}
+	return &DynamoDB{
+		client:               dynamodb.NewFromConfig(cfg),
+		usersTable:           os.Getenv("USERS_TABLE"),
+		projectsTable:        os.Getenv("PROJECTS_TABLE"),
+		scansTable:           os.Getenv("SCANS_TABLE"),
+		vulnerabilitiesTable: os.Getenv("VULNERABILITIES_TABLE"),
+	}, nil
+}
+
+// GetOrCreateProject retrieves an existing project by name or creates a new one if it doesn't exist
+func (d *DynamoDB) GetOrCreateProject(ctx context.Context, userID, projectName string) (*Project, error) {
+	projectID := uuid.New().String()
+	project := &Project{
+		UserID:    userID,
+		ProjectID: projectID,
+		Name:      projectName,
+		CreatedAt: time.Now().UTC(),
+	}
+	item, err := attributevalue.MarshalMap(project)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrMarshalProject, err)
+	}
+	_, err = d.client.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName:           aws.String(d.projectsTable),
+		Item:                item,
+		ConditionExpression: aws.String("attribute_not_exists(userId)"),
+	})
+	if err != nil {
+		var cfe *types.ConditionalCheckFailedException
+		if !errors.As(err, &cfe) {
+			return nil, fmt.Errorf("%w: %w", ErrPutProject, err)
+		}
+	}
+	return project, nil
+}
+
+// CreateScan creates a new scan for a project
+func (d *DynamoDB) CreateScan(ctx context.Context, scan *Scan) error {
+	item, err := attributevalue.MarshalMap(scan)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrMarshalScan, err)
+	}
+	_, err = d.client.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName: aws.String(d.scansTable),
+		Item:      item,
+	})
+	return err
+}
+
+// CreateVulnerabilities batch writes vulnerabilities in chunk of 25 (DynamoDB limit)
+func (d *DynamoDB) CreateVulnerabilities(ctx context.Context, vulns []Vulnerability) error {
+	if len(vulns) == 0 {
+		return nil
+	}
+	var requests []types.WriteRequest
+	for _, v := range vulns {
+		item, err := attributevalue.MarshalMap(v)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrMarshalVulnerability, err)
+		}
+		requests = append(requests, types.WriteRequest{
+			PutRequest: &types.PutRequest{Item: item},
+		})
+	}
+	for i := 0; i < len(requests); i += 25 {
+		end := i + 25
+		if end > len(requests) {
+			end = len(requests)
+		}
+		_, err := d.client.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				d.vulnerabilitiesTable: requests[i:end],
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrBatchWrite, err)
+		}
+	}
+	return nil
+}
+
+// ListProjectsByUser returns all projects owned by a user
+func (d *DynamoDB) ListProjectsByUser(ctx context.Context, userID string) ([]Project, error) {
+	result, err := d.client.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(d.projectsTable),
+		KeyConditionExpression: aws.String("userId = :uid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":uid": &types.AttributeValueMemberS{Value: userID},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	var projects []Project
+	if err := attributevalue.UnmarshalListOfMaps(result.Items, &projects); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	return projects, nil
+}
+
+// ListScansByProject return the most 50 recent scans for a project, newest first
+func (d *DynamoDB) ListScansByProject(ctx context.Context, projectID string) ([]Scan, error) {
+	result, err := d.client.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(d.scansTable),
+		KeyConditionExpression: aws.String("projectId = :pid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":pid": &types.AttributeValueMemberS{Value: projectID},
+		},
+		ScanIndexForward: aws.Bool(false),
+		Limit:            aws.Int32(50),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	var scans []Scan
+	if err := attributevalue.UnmarshalListOfMaps(result.Items, &scans); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	return scans, nil
+}
