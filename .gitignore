@@ -31,3 +31,8 @@ vulnly
 # Editor/IDE
 # .idea/
 # .vscode/
+# Binaries
+bootstrap
+*.exe
+# SAM
+.aws-sam/
