@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/ElshadHu/vulnly/api/internal/handler"
+	"github.com/ElshadHu/vulnly/api/internal/middleware"
 	"github.com/ElshadHu/vulnly/api/internal/repository"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -22,7 +23,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create repository: %v", err)
 	}
-	r := setupRouter(repo)
+	auth, err := middleware.NewAuth(ctx)
+	if err != nil {
+		log.Printf("warning: auth middleware disabled: %v", err)
+	}
+
+	r := setupRouter(repo, auth)
 
 	// Detect environment and run accordingly
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
@@ -36,7 +42,7 @@ func main() {
 	r.Run(":8080")
 }
 
-func setupRouter(repo *repository.DynamoDB) *gin.Engine {
+func setupRouter(repo *repository.DynamoDB, auth *middleware.Auth) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
@@ -51,10 +57,15 @@ func setupRouter(repo *repository.DynamoDB) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 		h := handler.New(repo)
-		api.POST("/ingest", h.Ingest)
-		api.GET("/projects", h.ListProjects)
-		api.GET("/projects/:project_id", h.GetProject)
-		api.GET("/projects/:project_id/scans", h.ListScans)
+
+		protected := api.Group("")
+		if auth != nil {
+			protected.Use(auth.Middleware())
+		}
+		protected.POST("/ingest", h.Ingest)
+		protected.GET("/projects", h.ListProjects)
+		protected.GET("/projects/:project_id", h.GetProject)
+		protected.GET("/projects/:project_id/scans", h.ListScans)
 	}
 	return r
 }
