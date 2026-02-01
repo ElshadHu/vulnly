@@ -18,7 +18,35 @@ Parameters:
       - dev
       - prod
 
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
 Resources:
+  # API Gateway with Cognito authorization
+  VulnlyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Cors:
+        AllowOrigin: !If 
+          - IsProd
+          - "'https://vulnly.com'"
+          - "'http://localhost:3000'"
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowCredentials: true
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingBurstLimit: 100
+          ThrottlingRateLimit: 50
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt VulnlyUserPool.Arn
+
   VulnlyFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -33,6 +61,9 @@ Resources:
           PROJECTS_TABLE: !Ref ProjectsTable
           SCANS_TABLE: !Ref ScansTable
           VULNERABILITIES_TABLE: !Ref VulnerabilitiesTable
+          COGNITO_USER_POOL_ID: !Ref VulnlyUserPool
+          COGNITO_CLIENT_ID: !Ref VulnlyUserPoolClient
+          COGNITO_REGION: !Ref AWS::Region
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
@@ -43,6 +74,14 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref VulnerabilitiesTable
       Events:
+        HealthCheck:
+          Type: Api
+          Properties:
+            Path: /api/health
+            Method: GET
+            RestApiId: !Ref VulnlyApi
+            Auth:
+              Authorizer: NONE
         ApiEvent:
           Type: Api
           Properties:
@@ -50,17 +89,56 @@ Resources:
             Method: ANY
             RestApiId: !Ref VulnlyApi
 
-  VulnlyApi:
-    Type: AWS::Serverless::Api
+  # Cognito User Pool
+  VulnlyUserPool:
+    Type: AWS::Cognito::UserPool
     Properties:
-      StageName: !Ref Environment
-      Cors:
-        AllowOrigin: "'http://localhost:3000'"
-        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization'"
+      UserPoolName: !Sub vulnly-users-${Environment}
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
 
+  # Cognito App Client (public, no secret)
+  VulnlyUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub vulnly-client-${Environment}
+      UserPoolId: !Ref VulnlyUserPool
+      GenerateSecret: false
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # DynamoDB Tables
   UsersTable:
     Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    DeletionPolicy: !If [IsProd, Retain, Delete]
     Properties:
       TableName: !Sub vulnly-users-${Environment}
       BillingMode: PAY_PER_REQUEST
@@ -70,9 +148,13 @@ Resources:
       KeySchema:
         - AttributeName: userId
           KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
 
   ProjectsTable:
     Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    DeletionPolicy: !If [IsProd, Retain, Delete]
     Properties:
       TableName: !Sub vulnly-projects-${Environment}
       BillingMode: PAY_PER_REQUEST
@@ -86,9 +168,13 @@ Resources:
           KeyType: HASH
         - AttributeName: projectId
           KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
 
   ScansTable:
     Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    DeletionPolicy: !If [IsProd, Retain, Delete]
     Properties:
       TableName: !Sub vulnly-scans-${Environment}
       BillingMode: PAY_PER_REQUEST
@@ -102,9 +188,16 @@ Resources:
           KeyType: HASH
         - AttributeName: scanId
           KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
   VulnerabilitiesTable:
     Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    DeletionPolicy: !If [IsProd, Retain, Delete]
     Properties:
       TableName: !Sub vulnly-vulnerabilities-${Environment}
       BillingMode: PAY_PER_REQUEST
@@ -118,6 +211,11 @@ Resources:
           KeyType: HASH
         - AttributeName: vulnId
           KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
 Outputs:
   ApiEndpoint:
@@ -126,3 +224,12 @@ Outputs:
   FunctionArn:
     Description: Lambda Function ARN
     Value: !GetAtt VulnlyFunction.Arn
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref VulnlyUserPool
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref VulnlyUserPoolClient
+  CognitoJwksUrl:
+    Description: JWKS URL for token validation
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${VulnlyUserPool}/.well-known/jwks.json"
