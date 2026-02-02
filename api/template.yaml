@@ -55,6 +55,8 @@ Resources:
           PROJECTS_TABLE: !Ref ProjectsTable
           SCANS_TABLE: !Ref ScansTable
           VULNERABILITIES_TABLE: !Ref VulnerabilitiesTable
+          API_TOKENS_TABLE: !Ref ApiTokensTable
+          TRENDS_TABLE: !Ref TrendsTable
           COGNITO_USER_POOL_ID: !Ref VulnlyUserPool
           COGNITO_CLIENT_ID: !Ref VulnlyUserPoolClient
           COGNITO_REGION: !Ref AWS::Region
@@ -67,6 +69,10 @@ Resources:
             TableName: !Ref ScansTable
         - DynamoDBCrudPolicy:
             TableName: !Ref VulnerabilitiesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ApiTokensTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TrendsTable
       Events:
         HealthCheck:
           Type: Api
@@ -202,6 +208,60 @@ Resources:
         - AttributeName: scanId
           KeyType: HASH
         - AttributeName: vulnId
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # API Tokens table for CLI authentication
+  ApiTokensTable:
+    Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    DeletionPolicy: !If [IsProd, Retain, Delete]
+    Properties:
+      TableName: !Sub vulnly-api-tokens-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: tokenId
+          AttributeType: S
+        - AttributeName: tokenLookup
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: tokenId
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: TokenLookupIndex
+          KeySchema:
+            - AttributeName: tokenLookup
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [IsProd, true, false]
+
+  # Trends table for pre-aggregated vulnerability counts
+  TrendsTable:
+    Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    DeletionPolicy: !If [IsProd, Retain, Delete]
+    Properties:
+      TableName: !Sub vulnly-trends-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: projectId
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: projectId
+          KeyType: HASH
+        - AttributeName: date
           KeyType: RANGE
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: !If [IsProd, true, false]
