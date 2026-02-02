@@ -40,12 +40,6 @@ Resources:
           HttpMethod: "*"
           ThrottlingBurstLimit: 100
           ThrottlingRateLimit: 50
-      Auth:
-        DefaultAuthorizer: CognitoAuthorizer
-        AddDefaultAuthorizerToCorsPreflight: false
-        Authorizers:
-          CognitoAuthorizer:
-            UserPoolArn: !GetAtt VulnlyUserPool.Arn
 
   VulnlyFunction:
     Type: AWS::Serverless::Function
@@ -80,8 +74,6 @@ Resources:
             Path: /api/health
             Method: GET
             RestApiId: !Ref VulnlyApi
-            Auth:
-              Authorizer: NONE
         ApiEvent:
           Type: Api
           Properties:
