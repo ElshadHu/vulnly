@@ -33,6 +33,8 @@ type DynamoDB struct {
 	projectsTable        string
 	scansTable           string
 	vulnerabilitiesTable string
+	apiTokensTable       string
+	trendsTable          string
 }
 
 // NewDynamoDB creates a new DynamoDB  repository with connections to all required tables
@@ -47,6 +49,8 @@ func NewDynamoDB(ctx context.Context) (*DynamoDB, error) {
 		projectsTable:        os.Getenv("PROJECTS_TABLE"),
 		scansTable:           os.Getenv("SCANS_TABLE"),
 		vulnerabilitiesTable: os.Getenv("VULNERABILITIES_TABLE"),
+		apiTokensTable:       os.Getenv("API_TOKENS_TABLE"),
+		trendsTable:          os.Getenv("TRENDS_TABLE"),
 	}, nil
 }
 

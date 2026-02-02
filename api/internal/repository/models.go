@@ -43,3 +43,23 @@ type Vulnerability struct {
 	FixedVersion   string `dynamodbav:"fixedVersion,omitempty"`
 	Description    string `dynamodbav:"description,omitempty"`
 }
+
+// APIToken represents a long-lived token for CLI authentication
+type APIToken struct {
+	UserID      string    `dynamodbav:"userId"`
+	TokenID     string    `dynamodbav:"tokenId"`
+	TokenHash   string    `dynamodbav:"tokenHash"`
+	TokenLookUp string    `dynamodbav:"tokenLookup"` //SHA-256 GSI lookup
+	Name        string    `dynamodbav:"name"`
+	CreatedAt   time.Time `dynamodbav:"createdAt"`
+	LastUsedAt  time.Time `dynamodbav:"lastUsedAt,omitempty"`
+}
+
+// TrendPoint stores pre-aggregated vulnerability counts per day.
+type TrendPoint struct {
+	ProjectID string      `dynamodbav:"projectId"`
+	Date      string      `dynamodbav:"date"` // YYYY-MM-DD
+	Summary   VulnSummary `dynamodbav:"summary"`
+	ScanCount int         `dynamodbav:"scanCount"`
+	TTL       int64       `dynamodbav:"ttl,omitempty"`
+}
