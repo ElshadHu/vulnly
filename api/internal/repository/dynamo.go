@@ -161,3 +161,30 @@ func (d *DynamoDB) ListScansByProject(ctx context.Context, projectID string) ([]
 	}
 	return scans, nil
 }
+
+func (d *DynamoDB) GetProjectByName(ctx context.Context, userID, name string) (*Project, error) {
+	result, err := d.client.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(d.projectsTable),
+		KeyConditionExpression: aws.String("userId = :uid"),
+		FilterExpression:       aws.String("#n = :name"),
+		ExpressionAttributeNames: map[string]string{
+			"#n": "name", // name is a reserved word in DynamoDB
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":uid":  &types.AttributeValueMemberS{Value: userID},
+			":name": &types.AttributeValueMemberS{Value: name},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	if len(result.Items) == 0 {
+		return nil, nil
+	}
+
+	var project Project
+	if err := attributevalue.UnmarshalMap(result.Items[0], &project); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	return &project, nil
+}
