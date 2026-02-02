@@ -1,5 +1,6 @@
-// Package upload provides functionality to upload scan results to the API
 package upload
+
+// Package upload provides functionality to upload scan results to the API
 
 import (
 	"bytes"
