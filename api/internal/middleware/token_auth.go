@@ -36,7 +36,7 @@ func TokenAuth(repo *repository.DynamoDB) gin.HandlerFunc {
 			return
 		}
 		c.Set("user_id", apiToken.UserID)
-		c.Set("token_id", "api_token")
+		c.Set("token_id", apiToken.TokenID)
 		c.Next()
 	}
 }
