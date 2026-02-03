@@ -65,6 +65,12 @@ func NewAuth(ctx context.Context) (*Auth, error) {
 // Middleware returns a Gin middleware that validates JWT tokens
 func (a *Auth) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Skip if already authenticated by token middleware
+		if c.GetString("user_id") != "" {
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
