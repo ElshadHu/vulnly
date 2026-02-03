@@ -150,8 +150,13 @@ func (d *DynamoDB) DeleteToken(ctx context.Context, userID, tokenID string) erro
 			"userId":  &types.AttributeValueMemberS{Value: userID},
 			"tokenId": &types.AttributeValueMemberS{Value: tokenID},
 		},
+		ConditionExpression: aws.String("attribute_exists(userId)"),
 	})
 	if err != nil {
+		var condErr *types.ConditionalCheckFailedException
+		if errors.As(err, &condErr) {
+			return ErrTokenNotFound
+		}
 		return fmt.Errorf("%w:%w", ErrDeleteToken, err)
 	}
 	return nil
