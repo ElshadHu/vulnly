@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ElshadHu/vulnly/api/internal/repository"
@@ -38,6 +40,28 @@ func (h *API) CreateToken(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
+	}
+	if len(req.Name) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name must be 100 characters or less"})
+		return
+	}
+
+	// Check token limit
+	const maxTokensPerUser = 10
+	existingTokens, err := h.repo.ListTokensByUser(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check token limit"})
+		return
+	}
+	if len(existingTokens) >= maxTokensPerUser {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "maximum 10 tokens allowed per user"})
+		return
+	}
+
 	// Generate token
 	plaintext, bcryptHash, sha256Lookup, err := repository.GenerateToken()
 	if err != nil {
@@ -101,9 +125,13 @@ func (h *API) DeleteToken(c *gin.Context) {
 	}
 
 	if err := h.repo.DeleteToken(c.Request.Context(), userID, tokenID); err != nil {
+		if errors.Is(err, repository.ErrTokenNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "token not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete token"})
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.Status(http.StatusNoContent)
 }
