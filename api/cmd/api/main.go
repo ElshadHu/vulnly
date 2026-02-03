@@ -51,21 +51,33 @@ func setupRouter(repo *repository.DynamoDB, auth *middleware.Auth) *gin.Engine {
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
 	api := r.Group("/api")
 	{
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
+
 		h := handler.New(repo)
+
+		// Token auth middleware checks for vly_ tokens first
+		// If not a vly_ token, falls through to JWT middleware
+		api.Use(middleware.TokenAuth(repo))
 
 		protected := api.Group("")
 		if auth != nil {
 			protected.Use(auth.Middleware())
 		}
+
 		protected.POST("/ingest", h.Ingest)
 		protected.GET("/projects", h.ListProjects)
 		protected.GET("/projects/:project_id", h.GetProject)
 		protected.GET("/projects/:project_id/scans", h.ListScans)
+
+		// Token management routes
+		protected.POST("/tokens", h.CreateToken)
+		protected.GET("/tokens", h.ListTokens)
+		protected.DELETE("/tokens/:token_id", h.DeleteToken)
 	}
 	return r
 }
