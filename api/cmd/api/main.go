@@ -62,9 +62,8 @@ func setupRouter(repo *repository.DynamoDB, auth *middleware.Auth) *gin.Engine {
 
 		// Token auth middleware checks for vly_ tokens first
 		// If not a vly_ token, falls through to JWT middleware
-		api.Use(middleware.TokenAuth(repo))
-
 		protected := api.Group("")
+		protected.Use(middleware.TokenAuth(repo))
 		if auth != nil {
 			protected.Use(auth.Middleware())
 		}
