@@ -47,7 +47,7 @@ func (h *API) GetTrends(c *gin.Context) {
 		}
 	}
 
-	scans, err := h.repo.GetRecentScans(c.Request.Context(), projectID, days)
+	scans, err := h.repo.GetRecentScans(c.Request.Context(), project.ProjectID, days)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get trend data"})
 		return
