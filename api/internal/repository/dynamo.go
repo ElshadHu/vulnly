@@ -241,7 +241,8 @@ func (d *DynamoDB) GetRecentScans(ctx context.Context, projectID string, days in
 
 	result, err := d.client.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String(d.scansTable),
-		KeyConditionExpression: aws.String("projectId = :pid AND createdAt >= :start"),
+		KeyConditionExpression: aws.String("projectId = :pid"),
+		FilterExpression:       aws.String("createdAt >= :start"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":pid":   &types.AttributeValueMemberS{Value: projectID},
 			":start": &types.AttributeValueMemberS{Value: startTime.Format(time.RFC3339)},
