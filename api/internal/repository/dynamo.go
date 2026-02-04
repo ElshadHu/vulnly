@@ -28,6 +28,8 @@ var (
 	ErrBatchWrite               = errors.New("failed to batch write")
 	ErrQueryVulnerabilities     = errors.New("failed to query vulnerabilities")
 	ErrUnmarshalVulnerabilities = errors.New("failed to unmarshal vulnerabilities")
+	ErrQueryScans               = errors.New("failed to query scans")
+	ErrUnmarshalScans           = errors.New("failed to unmarshal scans")
 )
 
 type DynamoDB struct {
@@ -230,4 +232,30 @@ func (d *DynamoDB) ListVulnerabilitiesByScan(ctx context.Context, scanID, severi
 		return nil, fmt.Errorf("%w: %w", ErrUnmarshalVulnerabilities, err)
 	}
 	return vulns, nil
+}
+
+// GetRecentScans returns scans from the last N days for a project, ordered oldest first.
+// Used by the trends API to generate time-series vulnerability data for charts.
+func (d *DynamoDB) GetRecentScans(ctx context.Context, projectID string, days int) ([]Scan, error) {
+	startTime := time.Now().AddDate(0, 0, -days)
+
+	result, err := d.client.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(d.scansTable),
+		KeyConditionExpression: aws.String("projectId = :pid AND createdAt >= :start"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":pid":   &types.AttributeValueMemberS{Value: projectID},
+			":start": &types.AttributeValueMemberS{Value: startTime.Format(time.RFC3339)},
+		},
+		ScanIndexForward: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryScans, err)
+	}
+
+	var scans []Scan
+	if err := attributevalue.UnmarshalListOfMaps(result.Items, &scans); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrUnmarshalScans, err)
+	}
+
+	return scans, nil
 }
