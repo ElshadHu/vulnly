@@ -284,7 +284,7 @@ func (d *DynamoDB) ListVulnerabilitiesByScan(ctx context.Context, scanID, severi
 // GetRecentScans returns scans from the last N days for a project, ordered oldest first.
 // Used by the trends API to generate time-series vulnerability data for charts.
 func (d *DynamoDB) GetRecentScans(ctx context.Context, projectID string, days int) ([]Scan, error) {
-	startTime := time.Now().AddDate(0, 0, -days)
+	startTime := time.Now().UTC().AddDate(0, 0, -days)
 
 	result, err := d.client.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String(d.scansTable),
