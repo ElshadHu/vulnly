@@ -32,6 +32,14 @@ func (h *API) GetTrends(c *gin.Context) {
 		return
 	}
 
+	// Get user ID from context
+	userID := c.GetString("user_id")
+	// Verify project belongs to user
+	project, err := h.repo.GetProjectByName(c.Request.Context(), userID, projectID)
+	if err != nil || project == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+		return
+	}
 	days := DefaultTrendDays
 	if daysStr := c.Query("days"); daysStr != "" {
 		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= MaxTrendDays {

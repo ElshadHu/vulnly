@@ -186,6 +186,13 @@ Resources:
           KeyType: HASH
         - AttributeName: scanId
           KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: ScanIdIndex
+          KeySchema:
+            - AttributeName: scanId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: !If [IsProd, true, false]
       TimeToLiveSpecification:

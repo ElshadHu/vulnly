@@ -198,6 +198,53 @@ func (d *DynamoDB) GetProjectByName(ctx context.Context, userID, name string) (*
 	return &project, nil
 }
 
+// GetProjectByID retrieves a project by userId and projectId
+func (d *DynamoDB) GetProjectByID(ctx context.Context, userID, projectID string) (*Project, error) {
+	result, err := d.client.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(d.projectsTable),
+		Key: map[string]types.AttributeValue{
+			"userId":    &types.AttributeValueMemberS{Value: userID},
+			"projectId": &types.AttributeValueMemberS{Value: projectID},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	if result.Item == nil {
+		return nil, nil
+	}
+
+	var project Project
+	if err := attributevalue.UnmarshalMap(result.Item, &project); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
+	}
+	return &project, nil
+}
+
+// GetScanByID retrieves a scan by scanId using GSI
+func (d *DynamoDB) GetScanByID(ctx context.Context, scanID string) (*Scan, error) {
+	result, err := d.client.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(d.scansTable),
+		IndexName:              aws.String("ScanIdIndex"),
+		KeyConditionExpression: aws.String("scanId = :sid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":sid": &types.AttributeValueMemberS{Value: scanID},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryScans, err)
+	}
+	if len(result.Items) == 0 {
+		return nil, nil
+	}
+
+	var scan Scan
+	if err := attributevalue.UnmarshalMap(result.Items[0], &scan); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrUnmarshalScans, err)
+	}
+	return &scan, nil
+}
+
 func (d *DynamoDB) ListVulnerabilitiesByScan(ctx context.Context, scanID, severity, packageName string, limit int) ([]Vulnerability, error) {
 	input := &dynamodb.QueryInput{
 		TableName:              aws.String(d.vulnerabilitiesTable),
