@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,13 +19,15 @@ import (
 )
 
 var (
-	ErrLoadConfig           = errors.New("failed to load AWS config")
-	ErrMarshalProject       = errors.New("failed to marshal project")
-	ErrMarshalScan          = errors.New("failed to marshal scan")
-	ErrMarshalVulnerability = errors.New("failed to marshal vulnerability")
-	ErrPutProject           = errors.New("failed to put project")
-	ErrQueryProjects        = errors.New("failed to query projects")
-	ErrBatchWrite           = errors.New("failed to batch write")
+	ErrLoadConfig               = errors.New("failed to load AWS config")
+	ErrMarshalProject           = errors.New("failed to marshal project")
+	ErrMarshalScan              = errors.New("failed to marshal scan")
+	ErrMarshalVulnerability     = errors.New("failed to marshal vulnerability")
+	ErrPutProject               = errors.New("failed to put project")
+	ErrQueryProjects            = errors.New("failed to query projects")
+	ErrBatchWrite               = errors.New("failed to batch write")
+	ErrQueryVulnerabilities     = errors.New("failed to query vulnerabilities")
+	ErrUnmarshalVulnerabilities = errors.New("failed to unmarshal vulnerabilities")
 )
 
 type DynamoDB struct {
@@ -191,4 +194,40 @@ func (d *DynamoDB) GetProjectByName(ctx context.Context, userID, name string) (*
 		return nil, fmt.Errorf("%w: %w", ErrQueryProjects, err)
 	}
 	return &project, nil
+}
+
+func (d *DynamoDB) ListVulnerabilitiesByScan(ctx context.Context, scanID, severity, packageName string, limit int) ([]Vulnerability, error) {
+	input := &dynamodb.QueryInput{
+		TableName:              aws.String(d.vulnerabilitiesTable),
+		KeyConditionExpression: aws.String("scanId = :sid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":sid": &types.AttributeValueMemberS{Value: scanID},
+		},
+		Limit: aws.Int32(int32(limit)),
+	}
+
+	// Build filter expression for optional filters
+	var filterParts []string
+	if severity != "" {
+		filterParts = append(filterParts, "severity = :sev")
+		input.ExpressionAttributeValues[":sev"] = &types.AttributeValueMemberS{Value: severity}
+	}
+	if packageName != "" {
+		filterParts = append(filterParts, "contains(packageName, :pkg)")
+		input.ExpressionAttributeValues[":pkg"] = &types.AttributeValueMemberS{Value: packageName}
+	}
+	if len(filterParts) > 0 {
+		input.FilterExpression = aws.String(strings.Join(filterParts, " AND "))
+	}
+
+	result, err := d.client.Query(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrQueryVulnerabilities, err)
+	}
+
+	var vulns []Vulnerability
+	if err := attributevalue.UnmarshalListOfMaps(result.Items, &vulns); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrUnmarshalVulnerabilities, err)
+	}
+	return vulns, nil
 }
