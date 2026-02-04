@@ -77,6 +77,10 @@ func setupRouter(repo *repository.DynamoDB, auth *middleware.Auth) *gin.Engine {
 		protected.POST("/tokens", h.CreateToken)
 		protected.GET("/tokens", h.ListTokens)
 		protected.DELETE("/tokens/:token_id", h.DeleteToken)
+
+		// Vulnerability and trend routes
+		protected.GET("/vulnerabilities", h.ListVulnerabilities)
+		protected.GET("/trends", h.GetTrends)
 	}
 	return r
 }
