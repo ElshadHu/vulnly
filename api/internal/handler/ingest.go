@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -49,7 +50,8 @@ func (h *API) Ingest(c *gin.Context) {
 	}
 	var req IngestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"failed to bind": err.Error()})
+		log.Printf("ingest bind error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 	project, err := h.repo.GetOrCreateProject(c.Request.Context(), userID, req.Project)

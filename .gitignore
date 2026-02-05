@@ -33,6 +33,7 @@ vulnly
 # .vscode/
 # Binaries
 bootstrap
+api/api
 *.exe
 # SAM
 .aws-sam/
