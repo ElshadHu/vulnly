@@ -9,11 +9,11 @@ type User struct {
 	CreatedAt  time.Time `dynamodbav:"createdAt"`
 }
 type Project struct {
-	UserID     string    `dynamodbav:"userId"`
-	ProjectID  string    `dynamodbav:"projectId"`
-	Name       string    `dynamodbav:"name"`
-	CreatedAt  time.Time `dynamodbav:"createdAt"`
-	LastScanAt time.Time `dynamodbav:"lastScanAt,omitempty"`
+	UserID     string    `dynamodbav:"userId" json:"userId"`
+	ProjectID  string    `dynamodbav:"projectId" json:"projectId"`
+	Name       string    `dynamodbav:"name" json:"name"`
+	CreatedAt  time.Time `dynamodbav:"createdAt" json:"createdAt"`
+	LastScanAt time.Time `dynamodbav:"lastScanAt,omitempty" json:"lastScanAt,omitempty"`
 }
 
 type VulnSummary struct {
@@ -24,24 +24,24 @@ type VulnSummary struct {
 }
 
 type Scan struct {
-	ProjectID string      `dynamodbav:"projectId"`
-	ScanID    string      `dynamodbav:"scanId"`
-	Commit    string      `dynamodbav:"commit,omitempty"`
-	Branch    string      `dynamodbav:"branch,omitempty"`
-	Ecosystem string      `dynamodbav:"ecosystem"`
-	TotalDeps int         `dynamodbav:"totalDeps"`
-	Summary   VulnSummary `dynamodbav:"summary"`
-	CreatedAt time.Time   `dynamodbav:"createdAt"`
+	ProjectID string      `dynamodbav:"projectId" json:"projectId"`
+	ScanID    string      `dynamodbav:"scanId" json:"scanId"`
+	Commit    string      `dynamodbav:"commit,omitempty" json:"commit,omitempty"`
+	Branch    string      `dynamodbav:"branch,omitempty" json:"branch,omitempty"`
+	Ecosystem string      `dynamodbav:"ecosystem" json:"ecosystem"`
+	TotalDeps int         `dynamodbav:"totalDeps" json:"totalDeps"`
+	Summary   VulnSummary `dynamodbav:"summary" json:"summary"`
+	CreatedAt time.Time   `dynamodbav:"createdAt" json:"createdAt"`
 }
 
 type Vulnerability struct {
-	ScanID         string `dynamodbav:"scanId"`
-	VulnID         string `dynamodbav:"vulnId"`
-	PackageName    string `dynamodbav:"packageName"`
-	PackageVersion string `dynamodbav:"packageVersion"`
-	Severity       string `dynamodbav:"severity"`
-	FixedVersion   string `dynamodbav:"fixedVersion,omitempty"`
-	Description    string `dynamodbav:"description,omitempty"`
+	ScanID         string `dynamodbav:"scanId" json:"scanId"`
+	VulnID         string `dynamodbav:"vulnId" json:"vulnId"`
+	PackageName    string `dynamodbav:"packageName" json:"packageName"`
+	PackageVersion string `dynamodbav:"packageVersion" json:"packageVersion"`
+	Severity       string `dynamodbav:"severity" json:"severity"`
+	FixedVersion   string `dynamodbav:"fixedVersion,omitempty" json:"fixedVersion,omitempty"`
+	Description    string `dynamodbav:"description,omitempty" json:"description,omitempty"`
 }
 
 // APIToken represents a long-lived token for CLI authentication
