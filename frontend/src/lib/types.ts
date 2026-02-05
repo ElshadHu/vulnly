@@ -109,11 +109,7 @@ export type GetProjectResponse = {
 
 // GET /api/projects/:project_id/scans - same structure as GetProjectResponse
 // Source: handler/projects.go line 72-76
-export type ListScansResponse = {
-  project_id: string;
-  name: string;
-  scans: Scan[];
-};
+export type ListScansResponse = GetProjectResponse;
 
 // GET /api/trends?projectId=xxx - { "dataPoints": [...] }
 // Source: handler/trends.go line 69
