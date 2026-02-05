@@ -28,7 +28,7 @@ export class ApiError extends Error {
 async function getAuthHeader(): Promise<string> {
   try {
     const session = await fetchAuthSession();
-    const token = session.tokens?.idToken?.toString();
+    const token = session.tokens?.accessToken?.toString();
     if (!token) {
       throw new Error("No token available");
     }
@@ -96,7 +96,9 @@ export async function deleteToken(tokenId: string): Promise<void> {
 }
 
 export async function getTrends(projectId: string, days: number = 30): Promise<TrendsResponse> {
-  return request(`/api/trends?projectId=${encodeURIComponent(projectId)}&days=${days}`);
+  const params = new URLSearchParams({ projectId });
+  params.set("days", days.toString());
+  return request(`/api/trends?${params.toString()}`);
 }
 
 export async function listVulnerabilities(
