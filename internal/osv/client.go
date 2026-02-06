@@ -33,7 +33,7 @@ func MakeRequest(query BatchedQuery) (*BatchedResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("osv request %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("osv returned status %d", resp.StatusCode)
@@ -52,7 +52,7 @@ func Get(id string) (*Vulnerability, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil

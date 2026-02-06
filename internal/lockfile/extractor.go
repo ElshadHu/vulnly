@@ -65,7 +65,7 @@ func extractFromFile(path string) ([]PackageDetails, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	for _, e := range extractors {
 		if e.ShouldExtract(path) {

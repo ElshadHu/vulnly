@@ -84,7 +84,7 @@ func (c *Client) Ingest(req *IngestRequest) (*IngestResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}

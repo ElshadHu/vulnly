@@ -56,12 +56,16 @@ func (c *FileCache) Get(ecosystem, name, version string) ([]byte, error) {
 
 	var entry Entry
 	if err := json.Unmarshal(data, &entry); err != nil {
-		os.Remove(path)
+		if err := os.Remove(path); err != nil {
+			return nil, fmt.Errorf("failed to remove corrupted cache: %w", err)
+		}
 		return nil, ErrCacheCorrupt
 	}
 
 	if time.Now().After(entry.ExpiresAt) {
-		os.Remove(path)
+		if err := os.Remove(path); err != nil {
+			return nil, fmt.Errorf("failed to remove expired cache: %w", err)
+		}
 		return nil, ErrCacheExpired
 	}
 
