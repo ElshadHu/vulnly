@@ -34,7 +34,9 @@ export default function RegisterPage() {
       if (isSignUpComplete) {
         router.push("/login");
       } else if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
-        sessionStorage.setItem("pendingConfirmEmail", email);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("pendingConfirmEmail", email);
+        }
         router.push("/confirm");
       }
     } catch (err) {

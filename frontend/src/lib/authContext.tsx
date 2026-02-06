@@ -21,9 +21,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
   async function handleSignOut() {
-    await signOut();
-    setUser(null);
-    window.location.href = "/login";
+    try {
+      await signOut();
+      setUser(null);
+      window.location.href = "/login";
+    } catch (err) {
+      console.error("Failed to sign out:", err);
+    }
   }
 
   return (

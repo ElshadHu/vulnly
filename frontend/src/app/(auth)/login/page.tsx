@@ -30,7 +30,9 @@ function LoginForm() {
         router.push(redirectTo);
         router.refresh();
       } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
-        sessionStorage.setItem("pendingConfirmEmail", email);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("pendingConfirmEmail", email);
+        }
         router.push("/confirm");
       }
     } catch (err) {

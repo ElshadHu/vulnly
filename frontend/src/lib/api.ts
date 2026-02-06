@@ -29,12 +29,12 @@ async function getAuthHeader(): Promise<string> {
   try {
     const session = await fetchAuthSession();
     const token = session.tokens?.accessToken?.toString();
-    if (!token) {
-      throw new Error("No token available");
+    if (token) {
+      return `Bearer ${token}`;
     }
-    return `Bearer ${token}`;
+    return ""; // Return empty, let request() handle 401
   } catch {
-    throw new ApiError(401, "Not authenticated");
+    return ""; // Return empty, let request() handle 401
   }
 }
 
