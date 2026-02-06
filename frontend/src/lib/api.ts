@@ -52,6 +52,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
+    // Handle 401 which will redirect to login
+    if (response.status === 401) {
+      if (typeof window !== "undefined") {
+        const currentPath = window.location.pathname;
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      }
+      throw new ApiError(401, "Session expired");
+    }
     const error = await response.json().catch(() => ({}));
     throw new ApiError(response.status, error.error || "Request failed");
   }
