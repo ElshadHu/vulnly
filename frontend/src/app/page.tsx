@@ -9,7 +9,7 @@ export default function HomePage() {
     getCurrentUser()
       .then(() => {
         // Logged in go to dashboard
-        router.replace("dashboard");
+        router.replace("/dashboard");
       })
       .catch(() => {
         // not logged in go to login
