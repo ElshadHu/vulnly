@@ -26,7 +26,7 @@ export function SideBar() {
     <aside className="sidebar">
       <div className="sidebar-header">
         <Link href="/dashboard" className="sidebar-logo">
-          Vulnly
+          <span> Vulnly</span>
         </Link>
       </div>
       <nav className="sidebar-nav">
