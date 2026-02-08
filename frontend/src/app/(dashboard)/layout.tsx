@@ -7,19 +7,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SideBar } from "@/components/layout/SideBar";
 import "./dashboard.css";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      refetchOnWindowFocus: true,
-      retry: 1,
-    },
-  },
-});
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [queryClient] = useState(() => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 60 * 1000,
+          refetchOnWindowFocus: true,
+          retry: 1,
+        },
+      },
+    });
+    return queryClient;
+  });
 
   useEffect(() => {
     getCurrentUser()
