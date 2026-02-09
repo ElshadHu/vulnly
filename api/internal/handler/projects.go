@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/ElshadHu/vulnly/api/internal/repository"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +17,21 @@ func (h *API) ListProjects(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list projects"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"projects": projects})
+	// attach latest scan for each project
+	type ProjectWithStats struct {
+		repository.Project
+		LatestScan *repository.Scan `json:"latestScan,omitempty"`
+	}
+	result := make([]ProjectWithStats, 0, len(projects))
+	for _, p := range projects {
+		ps := ProjectWithStats{Project: p}
+		scans, err := h.repo.ListScansByProject(c.Request.Context(), p.ProjectID)
+		if err == nil && len(scans) > 0 {
+			ps.LatestScan = &scans[0] // Already sorted newest first
+		}
+		result = append(result, ps)
+	}
+	c.JSON(http.StatusOK, gin.H{"projects": result})
 }
 
 func (h *API) GetProject(c *gin.Context) {
