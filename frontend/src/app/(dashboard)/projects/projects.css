@@ -1,0 +1,127 @@
+/* Search bar */
+.projects-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.search-icon {
+  color: #71717a;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.875rem;
+}
+.search-input::placeholder {
+  color: #71717a;
+}
+.search-count {
+  font-size: 0.75rem;
+  color: #71717a;
+  white-space: nowrap;
+}
+
+/* Clickable rows */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.clickable-row:hover {
+  background: #111 !important;
+}
+
+/* Sortable headers */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+}
+.sortable-th:hover {
+  color: #fff;
+}
+
+/* Project name cell */
+.project-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.project-icon {
+  color: #71717a;
+  flex-shrink: 0;
+}
+.project-name {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Healthy badge */
+.severity-badge.healthy {
+  background: rgba(34, 197, 94, 0.1);
+  color: #86efac;
+}
+
+/* Vulnerability bar — inspired by DependencyTrack SeverityProgressBar */
+.vuln-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.vuln-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 80px;
+  background: #222;
+}
+
+.vuln-bar-segment {
+  min-width: 3px;
+}
+.vuln-bar-segment.critical {
+  background: #ef4444;
+}
+.vuln-bar-segment.high {
+  background: #f97316;
+}
+.vuln-bar-segment.medium {
+  background: #eab308;
+}
+.vuln-bar-segment.low {
+  background: #22c55e;
+}
+
+.vuln-bar-total {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stat value critical highlight */
+.stat-value-critical {
+  color: #fca5a5;
+}
+
+/* Empty state code block */
+.empty-code {
+  display: inline-block;
+  padding: 0.75rem;
+  background: #111;
+  border-radius: 6px;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+}
