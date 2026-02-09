@@ -16,6 +16,10 @@ export type Project = {
   lastScanAt?: string;
 };
 
+export type ProjectWithStats = Project & {
+  latestScan?: Scan;
+};
+
 // Embedded in Scan, used for vulnerability counts
 export type VulnSummary = {
   critical: number;
@@ -96,7 +100,7 @@ export type ListTokensResponse = {
 
 // GET /api/projects - { "projects": [...] }
 export type ListProjectsResponse = {
-  projects: Project[];
+  projects: ProjectWithStats[];
 };
 
 // GET /api/projects/:project_id - { "project_id": "...", "name": "...", "scans": [...] }
